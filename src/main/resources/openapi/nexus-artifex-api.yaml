@@ -1,0 +1,397 @@
+openapi: 3.0.3
+info:
+  title: Nexus Artifex API
+  description: Creative Evolution Engine API
+  version: 1.0.0
+  contact:
+    name: Nexus Artifex Team
+
+servers:
+  - url: /api/v1
+    description: API Base Path
+
+tags:
+  - name: Projects
+    description: Gerenciamento de projetos criativos
+  - name: Nodes
+    description: Gerenciamento de nós do grafo criativo
+  - name: Evolution
+    description: Evolução criativa usando técnica SCAMPER
+  - name: Graph
+    description: Visualização do grafo de ideias
+  - name: Stream
+    description: Streaming de eventos em tempo real
+
+paths:
+  # ==================== PROJECTS ====================
+  /projects:
+    post:
+      tags:
+        - Projects
+      summary: Criar novo projeto
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Projeto criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Projects
+      summary: Listar projetos
+      operationId: listProjects
+      responses:
+        '200':
+          description: Lista de projetos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectResponse'
+
+  # ==================== NODES ====================
+  /projects/{projectId}/nodes:
+    post:
+      tags:
+        - Nodes
+      summary: Criar nó inicial
+      operationId: createNode
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do projeto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNodeRequest'
+      responses:
+        '201':
+          description: Nó criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Projeto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /nodes/{nodeId}:
+    get:
+      tags:
+        - Nodes
+      summary: Buscar nó por ID
+      operationId: getNodeById
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do nó
+      responses:
+        '200':
+          description: Nó encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+        '404':
+          description: Nó não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== EVOLUTION (SCAMPER) ====================
+  /nodes/{nodeId}/evolve:
+    post:
+      tags:
+        - Evolution
+      summary: Evoluir um nó usando SCAMPER
+      description: |
+        Aplica uma técnica SCAMPER ao nó para gerar variações criativas.
+        Técnicas disponíveis:
+        - SUBSTITUTE: Substituir elementos
+        - COMBINE: Combinar com outros conceitos
+        - ADAPT: Adaptar para outro contexto
+        - MODIFY: Modificar atributos
+        - PUT_TO_ANOTHER_USE: Aplicar para outro uso
+        - ELIMINATE: Eliminar elementos
+        - REVERSE: Inverter/reorganizar
+      operationId: evolveNode
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do nó a evoluir
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvolutionRequest'
+      responses:
+        '200':
+          description: Nós gerados pela IA
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvolutionResponse'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Nó não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== GRAPH ====================
+  /projects/{projectId}/graph:
+    get:
+      tags:
+        - Graph
+      summary: Obter grafo completo do projeto
+      operationId: getProjectGraph
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do projeto
+      responses:
+        '200':
+          description: Grafo do projeto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphResponse'
+        '404':
+          description: Projeto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== STREAM (SSE) ====================
+  /projects/{projectId}/stream:
+    get:
+      tags:
+        - Stream
+      summary: Stream de novos nós em tempo real
+      description: Server-Sent Events (SSE) para receber atualizações em tempo real
+      operationId: streamProjectEvents
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do projeto
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '404':
+          description: Projeto não encontrado
+
+# ==================== COMPONENTS ====================
+components:
+  schemas:
+    # ---------- Requests ----------
+    CreateProjectRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "Meu Projeto Criativo"
+
+    CreateNodeRequest:
+      type: object
+      required:
+        - type
+        - label
+      properties:
+        type:
+          type: string
+          enum:
+            - CONCEPT
+            - MUTATION
+          example: "CONCEPT"
+        label:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "Ideia Principal"
+        summary:
+          type: string
+          maxLength: 1000
+          example: "Descrição da ideia principal do projeto"
+
+    EvolutionRequest:
+      type: object
+      required:
+        - technique
+      properties:
+        technique:
+          type: string
+          enum:
+            - SUBSTITUTE
+            - COMBINE
+            - ADAPT
+            - MODIFY
+            - PUT_TO_ANOTHER_USE
+            - ELIMINATE
+            - REVERSE
+          example: "COMBINE"
+        count:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+          example: 3
+          description: Quantidade de variações a gerar
+
+    # ---------- Responses ----------
+    ProjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          example: "Meu Projeto Criativo"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-12-13T10:30:00Z"
+
+    NodeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174001"
+        label:
+          type: string
+          example: "Ideia Principal"
+        summary:
+          type: string
+          example: "Descrição da ideia principal"
+        visualData:
+          type: object
+          additionalProperties: true
+          description: Dados visuais para renderização no frontend
+          example:
+            x: 100
+            y: 200
+            color: "#FF6B6B"
+
+    EvolutionResponse:
+      type: object
+      properties:
+        originalNodeId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174001"
+        technique:
+          type: string
+          example: "COMBINE"
+        generatedNodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodeResponse'
+
+    GraphResponse:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodeResponse'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/EdgeResponse'
+
+    EdgeResponse:
+      type: object
+      properties:
+        source:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174001"
+        target:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174002"
+        relationship:
+          type: string
+          example: "EVOLVED_FROM"
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
