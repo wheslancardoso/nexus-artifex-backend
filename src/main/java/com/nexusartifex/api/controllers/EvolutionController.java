@@ -1,7 +1,7 @@
 package com.nexusartifex.api.controllers;
 
-import com.nexusartifex.api.dto.EvolutionRequest;
-import com.nexusartifex.api.dto.EvolutionResponse;
+import com.nexusartifex.api.dto.request.EvolutionRequest;
+import com.nexusartifex.api.dto.response.EvolutionResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

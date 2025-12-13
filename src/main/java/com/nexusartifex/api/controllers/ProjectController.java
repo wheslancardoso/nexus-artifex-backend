@@ -1,7 +1,7 @@
 package com.nexusartifex.api.controllers;
 
-import com.nexusartifex.api.dto.CreateProjectRequest;
-import com.nexusartifex.api.dto.ProjectResponse;
+import com.nexusartifex.api.dto.request.CreateProjectRequest;
+import com.nexusartifex.api.dto.response.ProjectResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,4 +1,4 @@
-package com.nexusartifex.api.dto;
+package com.nexusartifex.api.dto.response;
 
 /**
  * Response DTO para o endpoint de health check.
