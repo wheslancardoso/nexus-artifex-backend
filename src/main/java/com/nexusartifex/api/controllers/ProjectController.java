@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -28,8 +29,9 @@ public class ProjectController {
      */
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(@RequestBody CreateProjectRequest request) {
-        // TODO: mapear DTO -> domain, chamar service, mapear domain -> DTO
-        throw new UnsupportedOperationException("Not implemented yet");
+        var project = projectService.create(request.name());
+        var response = new ProjectResponse(project.getId(), project.getName(), project.getCreatedAt());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -38,7 +40,10 @@ public class ProjectController {
      */
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> listProjects() {
-        // TODO: chamar service.findAll(), mapear domain -> DTO
-        throw new UnsupportedOperationException("Not implemented yet");
+        var projects = projectService.findAll();
+        var response = projects.stream()
+                .map(p -> new ProjectResponse(p.getId(), p.getName(), p.getCreatedAt()))
+                .toList();
+        return ResponseEntity.ok(response);
     }
 }
