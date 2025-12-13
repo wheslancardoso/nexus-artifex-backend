@@ -2,6 +2,7 @@ package com.nexusartifex.api.controllers;
 
 import com.nexusartifex.api.dto.request.CreateNodeRequest;
 import com.nexusartifex.api.dto.response.NodeResponse;
+import com.nexusartifex.domain.services.NodeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,12 @@ import java.util.UUID;
 @RequestMapping("/api/v1")
 public class NodeController {
 
+    private final NodeService nodeService;
+
+    public NodeController(NodeService nodeService) {
+        this.nodeService = nodeService;
+    }
+
     /**
      * Criar nó inicial em um projeto.
      * POST /api/v1/projects/{projectId}/nodes
@@ -23,7 +30,8 @@ public class NodeController {
     public ResponseEntity<NodeResponse> createNode(
             @PathVariable UUID projectId,
             @RequestBody CreateNodeRequest request) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        // TODO: mapear DTO -> domain, chamar service, mapear domain -> DTO
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     /**
@@ -32,6 +40,7 @@ public class NodeController {
      */
     @GetMapping("/nodes/{nodeId}")
     public ResponseEntity<NodeResponse> getNodeById(@PathVariable UUID nodeId) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        // TODO: chamar service.findById(), mapear domain -> DTO
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
