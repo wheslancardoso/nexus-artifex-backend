@@ -84,4 +84,9 @@ public class GraphRepositoryAdapter implements GraphRepository {
     public void deleteByProjectId(UUID projectId) {
         jpaRepository.deleteByProjectId(projectId);
     }
+
+    @Override
+    public boolean existsEdge(UUID source, UUID target) {
+        return jpaRepository.existsBySourceNodeIdAndTargetNodeId(source, target);
+    }
 }
