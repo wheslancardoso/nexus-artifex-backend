@@ -8,6 +8,7 @@ import com.nexusartifex.domain.model.ScamperTechnique;
 import com.nexusartifex.domain.services.EvolutionService;
 import com.nexusartifex.infrastructure.repositories.GraphRepository;
 import com.nexusartifex.infrastructure.repositories.NodeRepository;
+import com.nexusartifex.shared.exceptions.ConflictOperationException;
 import com.nexusartifex.shared.exceptions.InvalidEvolutionException;
 import com.nexusartifex.shared.exceptions.InvalidGraphOperationException;
 import com.nexusartifex.shared.exceptions.NodeNotFoundException;
@@ -66,9 +67,9 @@ public class EvolutionServiceImpl implements EvolutionService {
             throw InvalidGraphOperationException.differentProjects();
         }
 
-        // Validação de consistência: edge duplicada
+        // Validação de consistência: edge duplicada → HTTP 409
         if (graphRepository.existsEdge(originalNode.getId(), savedNode.getId())) {
-            throw InvalidGraphOperationException.duplicateEdge(originalNode.getId(), savedNode.getId());
+            throw ConflictOperationException.duplicateEdge(originalNode.getId(), savedNode.getId());
         }
 
         // Persistir a Edge
