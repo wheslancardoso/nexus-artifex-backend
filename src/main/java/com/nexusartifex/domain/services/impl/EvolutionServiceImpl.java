@@ -8,6 +8,7 @@ import com.nexusartifex.domain.model.ScamperTechnique;
 import com.nexusartifex.domain.services.EvolutionService;
 import com.nexusartifex.infrastructure.repositories.GraphRepository;
 import com.nexusartifex.infrastructure.repositories.NodeRepository;
+import com.nexusartifex.infrastructure.sse.SseEventBus;
 import com.nexusartifex.shared.exceptions.ConflictOperationException;
 import com.nexusartifex.shared.exceptions.InvalidEvolutionException;
 import com.nexusartifex.shared.exceptions.InvalidGraphOperationException;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -26,10 +28,14 @@ public class EvolutionServiceImpl implements EvolutionService {
 
     private final NodeRepository nodeRepository;
     private final GraphRepository graphRepository;
+    private final SseEventBus sseEventBus;
 
-    public EvolutionServiceImpl(NodeRepository nodeRepository, GraphRepository graphRepository) {
+    public EvolutionServiceImpl(NodeRepository nodeRepository,
+            GraphRepository graphRepository,
+            SseEventBus sseEventBus) {
         this.nodeRepository = nodeRepository;
         this.graphRepository = graphRepository;
+        this.sseEventBus = sseEventBus;
     }
 
     @Override
@@ -75,8 +81,30 @@ public class EvolutionServiceImpl implements EvolutionService {
         // Persistir a Edge
         graphRepository.saveWithProject(edge, originalNode.getProjectId());
 
+        // Emitir evento SSE para o projeto
+        publishNodeEvolvedEvent(originalNode.getProjectId(), savedNode, technique, edge);
+
         // Retornar Evolution com lista contendo o node gerado
         return new Evolution(nodeId, technique, List.of(savedNode));
+    }
+
+    /**
+     * Publica evento SSE "node.evolved" para todas as conexões do projeto.
+     */
+    private void publishNodeEvolvedEvent(UUID projectId, Node node, ScamperTechnique technique, Edge edge) {
+        Map<String, Object> payload = Map.of(
+                "type", "node.evolved",
+                "projectId", projectId.toString(),
+                "technique", technique.name(),
+                "node", Map.of(
+                        "id", node.getId().toString(),
+                        "label", node.getLabel(),
+                        "summary", node.getSummary() != null ? node.getSummary() : ""),
+                "edge", Map.of(
+                        "source", edge.getSource().toString(),
+                        "target", edge.getTarget().toString(),
+                        "relationship", edge.getRelationship()));
+        sseEventBus.publish(projectId, "node.evolved", payload);
     }
 
     /**
