@@ -80,4 +80,38 @@ public class SseEventBus {
                 .mapToInt(List::size)
                 .sum();
     }
+
+    /**
+     * Publica um evento para todas as conexões de um projeto.
+     * Remove automaticamente emitters que falharem.
+     *
+     * @param projectId ID do projeto
+     * @param eventName Nome do evento SSE
+     * @param data      Dados do evento (será serializado como string)
+     */
+    public void publish(UUID projectId, String eventName, Object data) {
+        var emitters = projectEmitters.get(projectId);
+        if (emitters == null || emitters.isEmpty()) {
+            return;
+        }
+
+        // Lista para coletar emitters que falharam
+        var failedEmitters = new java.util.ArrayList<SseEmitter>();
+
+        for (SseEmitter emitter : emitters) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name(eventName)
+                        .data(data));
+            } catch (Exception e) {
+                // Emitter inválido, marcar para remoção
+                failedEmitters.add(emitter);
+            }
+        }
+
+        // Remover emitters que falharam
+        for (SseEmitter failed : failedEmitters) {
+            unregister(projectId, failed);
+        }
+    }
 }

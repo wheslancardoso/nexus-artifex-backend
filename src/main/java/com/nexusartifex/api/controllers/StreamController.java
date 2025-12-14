@@ -60,4 +60,17 @@ public class StreamController {
 
         return emitter;
     }
+
+    /**
+     * Endpoint temporário para teste de publicação SSE.
+     * POST /api/v1/projects/{projectId}/events/test
+     * 
+     * Publica um evento de teste para todas as conexões SSE do projeto.
+     */
+    @PostMapping("/{projectId}/events/test")
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void publishTestEvent(@PathVariable UUID projectId) {
+        sseEventBus.publish(projectId, "test",
+                "{\"message\":\"Evento de teste\",\"timestamp\":\"" + java.time.Instant.now() + "\"}");
+    }
 }
