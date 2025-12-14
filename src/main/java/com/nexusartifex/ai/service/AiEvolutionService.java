@@ -10,10 +10,11 @@ import com.nexusartifex.infrastructure.repositories.NodeRepository;
 import com.nexusartifex.shared.exceptions.NodeNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Serviço de evolução criativa via IA.
@@ -27,6 +28,9 @@ public class AiEvolutionService {
     private final CreativeEvolutionEngine engine;
     private final NodeRepository nodeRepository;
 
+    @Value("${features.ai.enabled:false}")
+    private boolean aiEnabled;
+
     public AiEvolutionService(CreativeEvolutionEngine engine, NodeRepository nodeRepository) {
         this.engine = engine;
         this.nodeRepository = nodeRepository;
@@ -39,8 +43,8 @@ public class AiEvolutionService {
      * @return Response com resultados da evolução
      */
     public AiEvolutionResponse evolve(AiEvolutionRequest request) {
-        log.info("AI Evolution solicitada para node {} com técnica {}",
-                request.nodeId(), request.technique());
+        log.info("AI Evolution solicitada para node {} com técnica {} (enabled={})",
+                request.nodeId(), request.technique(), aiEnabled);
 
         // Validar node existe
         var node = nodeRepository.findById(request.nodeId())
@@ -48,6 +52,16 @@ public class AiEvolutionService {
 
         // Converter technique
         ScamperTechnique technique = ScamperTechnique.valueOf(request.technique());
+
+        // Se feature flag desativada, retornar resposta vazia
+        if (!aiEnabled) {
+            log.info("AI Evolution desativada via feature flag - retornando placeholder");
+            return AiEvolutionResponse.of(
+                    request.nodeId(),
+                    technique.name(),
+                    "disabled",
+                    Collections.emptyList());
+        }
 
         // Criar contexto para engine
         EvolutionContext context = new EvolutionContext(
@@ -69,6 +83,13 @@ public class AiEvolutionService {
                 technique.name(),
                 engine.getProviderName(),
                 results);
+    }
+
+    /**
+     * Verifica se a feature de IA está habilitada.
+     */
+    public boolean isAiEnabled() {
+        return aiEnabled;
     }
 
     /**
