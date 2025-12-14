@@ -19,6 +19,15 @@ public interface GraphRepository {
     Edge save(Edge edge);
 
     /**
+     * Salva uma aresta com projectId explícito.
+     * 
+     * @param edge      Aresta a salvar
+     * @param projectId ID do projeto
+     * @return Aresta salva
+     */
+    Edge saveWithProject(Edge edge, UUID projectId);
+
+    /**
      * Salva múltiplas arestas.
      * 
      * @param edges Lista de arestas a salvar

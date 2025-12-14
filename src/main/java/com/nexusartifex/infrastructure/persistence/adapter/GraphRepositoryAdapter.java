@@ -40,6 +40,13 @@ public class GraphRepositoryAdapter implements GraphRepository {
     }
 
     @Override
+    public Edge saveWithProject(Edge edge, UUID projectId) {
+        var entity = EdgeMapper.toEntity(edge, projectId);
+        var saved = jpaRepository.save(entity);
+        return EdgeMapper.toDomain(saved);
+    }
+
+    @Override
     public List<Edge> saveAll(List<Edge> edges) {
         // Simplificado: sem projectId por ora
         var entities = edges.stream()

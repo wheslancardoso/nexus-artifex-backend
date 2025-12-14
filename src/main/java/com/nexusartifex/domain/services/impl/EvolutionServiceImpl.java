@@ -1,10 +1,12 @@
 package com.nexusartifex.domain.services.impl;
 
+import com.nexusartifex.domain.model.Edge;
 import com.nexusartifex.domain.model.Evolution;
 import com.nexusartifex.domain.model.Node;
 import com.nexusartifex.domain.model.NodeType;
 import com.nexusartifex.domain.model.ScamperTechnique;
 import com.nexusartifex.domain.services.EvolutionService;
+import com.nexusartifex.infrastructure.repositories.GraphRepository;
 import com.nexusartifex.infrastructure.repositories.NodeRepository;
 import com.nexusartifex.shared.exceptions.InvalidEvolutionException;
 import com.nexusartifex.shared.exceptions.NodeNotFoundException;
@@ -21,9 +23,11 @@ import java.util.UUID;
 public class EvolutionServiceImpl implements EvolutionService {
 
     private final NodeRepository nodeRepository;
+    private final GraphRepository graphRepository;
 
-    public EvolutionServiceImpl(NodeRepository nodeRepository) {
+    public EvolutionServiceImpl(NodeRepository nodeRepository, GraphRepository graphRepository) {
         this.nodeRepository = nodeRepository;
+        this.graphRepository = graphRepository;
     }
 
     @Override
@@ -48,13 +52,16 @@ public class EvolutionServiceImpl implements EvolutionService {
         // Persistir o node evoluído
         Node savedNode = nodeRepository.save(evolvedNode);
 
+        // Criar e persistir Edge conectando original -> evoluído
+        Edge edge = createEvolutionEdge(originalNode, savedNode, technique);
+        graphRepository.saveWithProject(edge, originalNode.getProjectId());
+
         // Retornar Evolution com lista contendo o node gerado
         return new Evolution(nodeId, technique, List.of(savedNode));
     }
 
     /**
      * Cria um novo Node derivado baseado na técnica SCAMPER.
-     * Esta é uma implementação placeholder sem IA.
      */
     private Node createEvolvedNode(Node originalNode, ScamperTechnique technique) {
         UUID id = UUID.randomUUID();
@@ -65,6 +72,17 @@ public class EvolutionServiceImpl implements EvolutionService {
         String summary = generateSummary(originalNode.getSummary(), technique);
 
         return new Node(id, projectId, type, label, summary, Collections.emptyMap());
+    }
+
+    /**
+     * Cria uma Edge conectando o node original ao node evoluído.
+     */
+    private Edge createEvolutionEdge(Node originalNode, Node evolvedNode, ScamperTechnique technique) {
+        UUID source = originalNode.getId();
+        UUID target = evolvedNode.getId();
+        String relationship = "EVOLVED_" + technique.name();
+
+        return new Edge(source, target, relationship);
     }
 
     private String generateLabel(String originalLabel, ScamperTechnique technique) {
