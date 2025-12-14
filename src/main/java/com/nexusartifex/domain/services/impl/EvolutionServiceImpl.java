@@ -14,6 +14,7 @@ import com.nexusartifex.shared.exceptions.InvalidEvolutionException;
 import com.nexusartifex.shared.exceptions.InvalidGraphOperationException;
 import com.nexusartifex.shared.exceptions.NodeNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -38,7 +39,15 @@ public class EvolutionServiceImpl implements EvolutionService {
         this.sseEventBus = sseEventBus;
     }
 
+    /**
+     * Evolui um node usando técnica SCAMPER.
+     * 
+     * Transacional para garantir atomicidade: Node + Edge são persistidos juntos.
+     * Se ocorrer exceção, todo o trabalho é revertido e nenhum evento SSE é
+     * emitido.
+     */
     @Override
+    @Transactional
     public Evolution evolve(UUID nodeId, ScamperTechnique technique, int count) {
         // Regra 1: nodeId obrigatório
         if (nodeId == null) {
