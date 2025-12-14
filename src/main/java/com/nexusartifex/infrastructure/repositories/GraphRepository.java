@@ -60,6 +60,15 @@ public interface GraphRepository {
     List<Edge> findByTargetNodeId(UUID nodeId);
 
     /**
+     * Verifica se existe uma edge entre dois nós.
+     * 
+     * @param source ID do nó de origem
+     * @param target ID do nó de destino
+     * @return true se existe edge, false caso contrário
+     */
+    boolean existsEdge(UUID source, UUID target);
+
+    /**
      * Remove todas as arestas de um projeto.
      * 
      * @param projectId ID do projeto
