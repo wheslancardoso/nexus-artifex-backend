@@ -40,3 +40,9 @@ logging:
 features:
   ai:
     enabled: true  # Controla se a engine de IA é chamada
+
+# OpenAI Configuration
+openai:
+  api:
+    key: ${OPENAI_API_KEY:}  # Lê da variável de ambiente
+  model: gpt-4o-mini  # Modelo a usar (gpt-4o-mini é mais barato)
