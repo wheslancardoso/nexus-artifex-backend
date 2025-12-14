@@ -18,4 +18,6 @@ public interface EdgeJpaRepository extends JpaRepository<EdgeEntity, UUID> {
     List<EdgeEntity> findByTargetNodeId(UUID targetNodeId);
 
     void deleteByProjectId(UUID projectId);
+
+    boolean existsBySourceNodeIdAndTargetNodeId(UUID sourceNodeId, UUID targetNodeId);
 }
