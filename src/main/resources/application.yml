@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: nexus-artifex-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/nexusartifex
+    username: nexusartifex
+    password: nexusartifex
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+logging:
+  level:
+    root: INFO
+    com.nexusartifex: DEBUG
+    org.hibernate.SQL: DEBUG

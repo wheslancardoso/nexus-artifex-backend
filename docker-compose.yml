@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexusartifex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexusartifex
+      POSTGRES_USER: nexusartifex
+      POSTGRES_PASSWORD: nexusartifex
+    ports:
+      - "5433:5432"
+    volumes:
+      - nexusartifex_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexusartifex -d nexusartifex" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  nexusartifex_data:
