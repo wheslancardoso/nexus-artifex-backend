@@ -9,6 +9,7 @@ import com.nexusartifex.domain.services.EvolutionService;
 import com.nexusartifex.infrastructure.repositories.GraphRepository;
 import com.nexusartifex.infrastructure.repositories.NodeRepository;
 import com.nexusartifex.shared.exceptions.InvalidEvolutionException;
+import com.nexusartifex.shared.exceptions.InvalidGraphOperationException;
 import com.nexusartifex.shared.exceptions.NodeNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -52,8 +53,25 @@ public class EvolutionServiceImpl implements EvolutionService {
         // Persistir o node evoluído
         Node savedNode = nodeRepository.save(evolvedNode);
 
-        // Criar e persistir Edge conectando original -> evoluído
+        // Criar Edge e validar consistência
         Edge edge = createEvolutionEdge(originalNode, savedNode, technique);
+
+        // Validação de consistência: source != target (self-loop)
+        if (originalNode.getId().equals(savedNode.getId())) {
+            throw InvalidGraphOperationException.selfLoop(originalNode.getId());
+        }
+
+        // Validação de consistência: nodes do mesmo projeto
+        if (!originalNode.getProjectId().equals(savedNode.getProjectId())) {
+            throw InvalidGraphOperationException.differentProjects();
+        }
+
+        // Validação de consistência: edge duplicada
+        if (graphRepository.existsEdge(originalNode.getId(), savedNode.getId())) {
+            throw InvalidGraphOperationException.duplicateEdge(originalNode.getId(), savedNode.getId());
+        }
+
+        // Persistir a Edge
         graphRepository.saveWithProject(edge, originalNode.getProjectId());
 
         // Retornar Evolution com lista contendo o node gerado
