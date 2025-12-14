@@ -13,6 +13,7 @@ import com.nexusartifex.shared.exceptions.ConflictOperationException;
 import com.nexusartifex.shared.exceptions.InvalidEvolutionException;
 import com.nexusartifex.shared.exceptions.InvalidGraphOperationException;
 import com.nexusartifex.shared.exceptions.NodeNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,13 +83,18 @@ public class EvolutionServiceImpl implements EvolutionService {
             throw InvalidGraphOperationException.differentProjects();
         }
 
-        // Validação de consistência: edge duplicada → HTTP 409
+        // Validação de consistência: edge duplicada → HTTP 409 (check otimista)
         if (graphRepository.existsEdge(originalNode.getId(), savedNode.getId())) {
             throw ConflictOperationException.duplicateEdge(originalNode.getId(), savedNode.getId());
         }
 
-        // Persistir a Edge
-        graphRepository.saveWithProject(edge, originalNode.getProjectId());
+        // Persistir a Edge com tratamento de violação de constraint (concorrência)
+        try {
+            graphRepository.saveWithProject(edge, originalNode.getProjectId());
+        } catch (DataIntegrityViolationException e) {
+            // Constraint UNIQUE violada por request concorrente
+            throw ConflictOperationException.duplicateEdge(originalNode.getId(), savedNode.getId());
+        }
 
         // Emitir evento SSE para o projeto
         publishNodeEvolvedEvent(originalNode.getProjectId(), savedNode, technique, edge);
