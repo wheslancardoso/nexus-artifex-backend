@@ -26,7 +26,7 @@ public class NodeEntity {
     @Column(name = "summary", length = 1000)
     private String summary;
 
-    @Column(name = "visual_data", columnDefinition = "jsonb")
+    @Column(name = "visual_data", columnDefinition = "TEXT")
     private String visualData;
 
     public NodeEntity() {

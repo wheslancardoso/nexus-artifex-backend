@@ -2,12 +2,12 @@ package com.nexusartifex.api.controllers;
 
 import com.nexusartifex.api.dto.request.CreateProjectRequest;
 import com.nexusartifex.api.dto.response.ProjectResponse;
+import com.nexusartifex.api.mapper.ProjectDtoMapper;
 import com.nexusartifex.domain.services.ProjectService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -29,9 +29,8 @@ public class ProjectController {
      */
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(@RequestBody CreateProjectRequest request) {
-        var project = projectService.create(request.name());
-        var response = new ProjectResponse(project.getId(), project.getName(), project.getCreatedAt());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        var project = projectService.create(ProjectDtoMapper.extractName(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ProjectDtoMapper.toResponse(project));
     }
 
     /**
@@ -42,7 +41,7 @@ public class ProjectController {
     public ResponseEntity<List<ProjectResponse>> listProjects() {
         var projects = projectService.findAll();
         var response = projects.stream()
-                .map(p -> new ProjectResponse(p.getId(), p.getName(), p.getCreatedAt()))
+                .map(ProjectDtoMapper::toResponse)
                 .toList();
         return ResponseEntity.ok(response);
     }

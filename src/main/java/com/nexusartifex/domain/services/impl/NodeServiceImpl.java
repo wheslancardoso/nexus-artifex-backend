@@ -11,7 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Implementação placeholder do serviço de Nós.
+ * Implementação do serviço de Nós usando repository real.
  */
 @Service
 public class NodeServiceImpl implements NodeService {
@@ -24,13 +24,12 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public Node create(UUID projectId, NodeType type, String label, String summary) {
-        // Placeholder: retorna nó com dados mínimos
-        return new Node(UUID.randomUUID(), projectId, type, label, summary, Collections.emptyMap());
+        var node = new Node(UUID.randomUUID(), projectId, type, label, summary, Collections.emptyMap());
+        return nodeRepository.save(node);
     }
 
     @Override
     public Optional<Node> findById(UUID nodeId) {
-        // Placeholder: retorna vazio
-        return Optional.empty();
+        return nodeRepository.findById(nodeId);
     }
 }

@@ -6,13 +6,12 @@ import com.nexusartifex.infrastructure.repositories.ProjectRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Implementação placeholder do serviço de Projetos.
+ * Implementação do serviço de Projetos usando repository real.
  */
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -25,19 +24,17 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public Project create(String name) {
-        // Placeholder: retorna projeto com dados mínimos
-        return new Project(UUID.randomUUID(), name, OffsetDateTime.now());
+        var project = new Project(UUID.randomUUID(), name, OffsetDateTime.now());
+        return projectRepository.save(project);
     }
 
     @Override
     public List<Project> findAll() {
-        // Placeholder: retorna lista vazia
-        return Collections.emptyList();
+        return projectRepository.findAll();
     }
 
     @Override
     public Optional<Project> findById(UUID id) {
-        // Placeholder: retorna vazio
-        return Optional.empty();
+        return projectRepository.findById(id);
     }
 }

@@ -7,7 +7,7 @@ CREATE TABLE nodes (
     type VARCHAR(50) NOT NULL,
     label VARCHAR(255) NOT NULL,
     summary VARCHAR(1000),
-    visual_data JSONB
+    visual_data TEXT
 );
 
 -- Indexes

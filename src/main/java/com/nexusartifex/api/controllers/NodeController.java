@@ -2,7 +2,7 @@ package com.nexusartifex.api.controllers;
 
 import com.nexusartifex.api.dto.request.CreateNodeRequest;
 import com.nexusartifex.api.dto.response.NodeResponse;
-import com.nexusartifex.domain.model.NodeType;
+import com.nexusartifex.api.mapper.NodeDtoMapper;
 import com.nexusartifex.domain.services.NodeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,10 +31,12 @@ public class NodeController {
     public ResponseEntity<NodeResponse> createNode(
             @PathVariable UUID projectId,
             @RequestBody CreateNodeRequest request) {
-        var nodeType = NodeType.valueOf(request.type());
-        var node = nodeService.create(projectId, nodeType, request.label(), request.summary());
-        var response = new NodeResponse(node.getId(), node.getLabel(), node.getSummary(), node.getVisualData());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        var node = nodeService.create(
+                projectId,
+                NodeDtoMapper.extractType(request),
+                NodeDtoMapper.extractLabel(request),
+                NodeDtoMapper.extractSummary(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(NodeDtoMapper.toResponse(node));
     }
 
     /**
@@ -44,7 +46,7 @@ public class NodeController {
     @GetMapping("/nodes/{nodeId}")
     public ResponseEntity<NodeResponse> getNodeById(@PathVariable UUID nodeId) {
         return nodeService.findById(nodeId)
-                .map(node -> new NodeResponse(node.getId(), node.getLabel(), node.getSummary(), node.getVisualData()))
+                .map(NodeDtoMapper::toResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
