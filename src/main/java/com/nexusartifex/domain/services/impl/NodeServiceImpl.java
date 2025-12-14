@@ -5,11 +5,13 @@ import com.nexusartifex.domain.model.NodeType;
 import com.nexusartifex.domain.services.NodeService;
 import com.nexusartifex.infrastructure.repositories.NodeRepository;
 import com.nexusartifex.infrastructure.repositories.ProjectRepository;
+import com.nexusartifex.infrastructure.sse.SseEventBus;
 import com.nexusartifex.shared.exceptions.InvalidNodeException;
 import com.nexusartifex.shared.exceptions.ProjectNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,10 +25,14 @@ public class NodeServiceImpl implements NodeService {
 
     private final NodeRepository nodeRepository;
     private final ProjectRepository projectRepository;
+    private final SseEventBus sseEventBus;
 
-    public NodeServiceImpl(NodeRepository nodeRepository, ProjectRepository projectRepository) {
+    public NodeServiceImpl(NodeRepository nodeRepository,
+            ProjectRepository projectRepository,
+            SseEventBus sseEventBus) {
         this.nodeRepository = nodeRepository;
         this.projectRepository = projectRepository;
+        this.sseEventBus = sseEventBus;
     }
 
     @Override
@@ -64,7 +70,27 @@ public class NodeServiceImpl implements NodeService {
         String trimmedSummary = summary != null ? summary.trim() : null;
 
         var node = new Node(id, projectId, type, trimmedLabel, trimmedSummary, Collections.emptyMap());
-        return nodeRepository.save(node);
+        Node savedNode = nodeRepository.save(node);
+
+        // Emitir evento SSE para o projeto
+        publishNodeCreatedEvent(savedNode);
+
+        return savedNode;
+    }
+
+    /**
+     * Publica evento SSE "node.created" para todas as conexões do projeto.
+     */
+    private void publishNodeCreatedEvent(Node node) {
+        Map<String, Object> payload = Map.of(
+                "type", "node.created",
+                "projectId", node.getProjectId().toString(),
+                "node", Map.of(
+                        "id", node.getId().toString(),
+                        "type", node.getType().name(),
+                        "label", node.getLabel(),
+                        "summary", node.getSummary() != null ? node.getSummary() : ""));
+        sseEventBus.publish(node.getProjectId(), "node.created", payload);
     }
 
     @Override
