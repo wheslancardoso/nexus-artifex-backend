@@ -59,7 +59,7 @@ public class EvolutionServiceImpl implements EvolutionService {
     private Node createEvolvedNode(Node originalNode, ScamperTechnique technique) {
         UUID id = UUID.randomUUID();
         UUID projectId = originalNode.getProjectId();
-        NodeType type = NodeType.EVOLUTION;
+        NodeType type = NodeType.MUTATION;
 
         String label = generateLabel(originalNode.getLabel(), technique);
         String summary = generateSummary(originalNode.getSummary(), technique);
@@ -73,7 +73,7 @@ public class EvolutionServiceImpl implements EvolutionService {
             case COMBINE -> "[Combinar] " + originalLabel;
             case ADAPT -> "[Adaptar] " + originalLabel;
             case MODIFY -> "[Modificar] " + originalLabel;
-            case PUT_TO_OTHER_USES -> "[Outro Uso] " + originalLabel;
+            case PUT_TO_ANOTHER_USE -> "[Outro Uso] " + originalLabel;
             case ELIMINATE -> "[Eliminar] " + originalLabel;
             case REVERSE -> "[Inverter] " + originalLabel;
         };
@@ -86,7 +86,7 @@ public class EvolutionServiceImpl implements EvolutionService {
             case COMBINE -> "E se combinássemos com outra ideia: " + base + "?";
             case ADAPT -> "E se adaptássemos para outro contexto: " + base + "?";
             case MODIFY -> "E se modificássemos/amplificássemos: " + base + "?";
-            case PUT_TO_OTHER_USES -> "E se usássemos para outro propósito: " + base + "?";
+            case PUT_TO_ANOTHER_USE -> "E se usássemos para outro propósito: " + base + "?";
             case ELIMINATE -> "E se eliminássemos parte de: " + base + "?";
             case REVERSE -> "E se invertêssemos/reorganizássemos: " + base + "?";
         };
