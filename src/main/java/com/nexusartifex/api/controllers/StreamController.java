@@ -1,6 +1,8 @@
 package com.nexusartifex.api.controllers;
 
 import com.nexusartifex.infrastructure.sse.SseEventBus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -14,6 +16,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/projects")
 public class StreamController {
+
+    private static final Logger log = LoggerFactory.getLogger(StreamController.class);
 
     private final SseEventBus sseEventBus;
 
@@ -32,6 +36,8 @@ public class StreamController {
 
         // Registrar no Event Bus
         sseEventBus.register(projectId, emitter);
+        log.info("SSE conneção aberta para projeto {} (total: {})",
+                projectId, sseEventBus.getConnectionCount(projectId));
 
         try {
             // Enviar evento inicial "connected"
@@ -39,6 +45,7 @@ public class StreamController {
                     .name("connected")
                     .data("{\"status\":\"connected\",\"projectId\":\"" + projectId + "\"}"));
         } catch (IOException e) {
+            log.warn("SSE falha ao enviar 'connected' para projeto {}", projectId);
             sseEventBus.unregister(projectId, emitter);
             emitter.completeWithError(e);
         }
@@ -46,6 +53,8 @@ public class StreamController {
         // Callbacks para limpeza e remoção do bus
         emitter.onCompletion(() -> {
             sseEventBus.unregister(projectId, emitter);
+            log.info("SSE conneção fechada para projeto {} (restantes: {})",
+                    projectId, sseEventBus.getConnectionCount(projectId));
         });
 
         emitter.onTimeout(() -> {

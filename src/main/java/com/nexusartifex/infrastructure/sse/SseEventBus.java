@@ -1,5 +1,7 @@
 package com.nexusartifex.infrastructure.sse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -14,6 +16,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 @Component
 public class SseEventBus {
+
+    private static final Logger log = LoggerFactory.getLogger(SseEventBus.class);
 
     /**
      * Mapa de projectId -> lista de emitters conectados.
@@ -92,8 +96,13 @@ public class SseEventBus {
     public void publish(UUID projectId, String eventName, Object data) {
         var emitters = projectEmitters.get(projectId);
         if (emitters == null || emitters.isEmpty()) {
+            log.debug("SSE publish '{}' para projeto {} - nenhuma conexão ativa", eventName, projectId);
             return;
         }
+
+        int connectionCount = emitters.size();
+        log.info("SSE publicando evento '{}' para projeto {} ({} conexões)",
+                eventName, projectId, connectionCount);
 
         // Lista para coletar emitters que falharam
         var failedEmitters = new java.util.ArrayList<SseEmitter>();
@@ -105,6 +114,8 @@ public class SseEventBus {
                         .data(data));
             } catch (Exception e) {
                 // Emitter inválido, marcar para remoção
+                log.warn("SSE falha ao enviar evento '{}' para projeto {} - removendo emitter",
+                        eventName, projectId);
                 failedEmitters.add(emitter);
             }
         }
@@ -112,6 +123,11 @@ public class SseEventBus {
         // Remover emitters que falharam
         for (SseEmitter failed : failedEmitters) {
             unregister(projectId, failed);
+        }
+
+        if (!failedEmitters.isEmpty()) {
+            log.info("SSE removidos {} emitters inválidos do projeto {}",
+                    failedEmitters.size(), projectId);
         }
     }
 }
