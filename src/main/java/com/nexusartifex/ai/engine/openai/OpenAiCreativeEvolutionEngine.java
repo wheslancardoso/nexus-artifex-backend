@@ -1,10 +1,16 @@
 package com.nexusartifex.ai.engine.openai;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusartifex.ai.engine.CreativeEvolutionEngine;
 import com.nexusartifex.ai.engine.EvolutionContext;
 import com.nexusartifex.ai.engine.EvolutionResult;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.output.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementação da engine de evolução criativa usando OpenAI via LangChain4j.
@@ -24,6 +31,23 @@ import java.util.List;
 public class OpenAiCreativeEvolutionEngine implements CreativeEvolutionEngine {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiCreativeEvolutionEngine.class);
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * System prompt fixo para consistência e qualidade.
+     */
+    private static final String SYSTEM_PROMPT = """
+            You are Nexus Artifex, a creative evolution engine.
+
+            Your role is to generate concise, high-quality creative mutations of an idea using the SCAMPER technique.
+
+            Rules:
+            - Be concrete and specific, not generic.
+            - Avoid buzzwords and vague phrases.
+            - Focus on practical, creative evolution.
+            - Do not repeat the original idea verbatim.
+            - Keep responses short and structured.
+            """;
 
     private final ChatLanguageModel chatModel;
     private final boolean available;
@@ -41,8 +65,8 @@ public class OpenAiCreativeEvolutionEngine implements CreativeEvolutionEngine {
             this.chatModel = OpenAiChatModel.builder()
                     .apiKey(apiKey)
                     .modelName(model)
-                    .temperature(0.8)
-                    .maxTokens(1024)
+                    .temperature(0.7) // Balanceado: criatividade + consistência
+                    .maxTokens(300) // Reduzido para respostas concisas
                     .build();
             this.available = true;
         }
@@ -58,13 +82,17 @@ public class OpenAiCreativeEvolutionEngine implements CreativeEvolutionEngine {
         log.info("Chamando OpenAI para evoluir '{}' com técnica {}",
                 context.label(), context.technique());
 
-        String prompt = buildPrompt(context);
+        String userPrompt = buildUserPrompt(context);
 
         try {
-            String response = chatModel.generate(prompt);
-            log.debug("Resposta OpenAI: {}", response);
+            Response<AiMessage> response = chatModel.generate(
+                    SystemMessage.from(SYSTEM_PROMPT),
+                    UserMessage.from(userPrompt));
 
-            List<EvolutionResult> results = parseResponse(response, context);
+            String content = response.content().text();
+            log.debug("Resposta OpenAI: {}", content);
+
+            List<EvolutionResult> results = parseJsonResponse(content);
             log.info("OpenAI retornou {} resultados", results.size());
             return results;
 
@@ -75,82 +103,75 @@ public class OpenAiCreativeEvolutionEngine implements CreativeEvolutionEngine {
     }
 
     /**
-     * Constrói o prompt para a OpenAI baseado no contexto.
+     * Constrói o user prompt estruturado.
      */
-    private String buildPrompt(EvolutionContext context) {
-        String techniqueDescription = getTechniqueDescription(context.technique().name());
-
+    private String buildUserPrompt(EvolutionContext context) {
         return String.format("""
-                Você é um assistente criativo especializado em ideação usando a metodologia SCAMPER.
+                Original idea:
+                Title: "%s"
+                Description: "%s"
 
-                Técnica atual: %s
-                Descrição: %s
+                SCAMPER technique: %s
 
-                Conceito original:
-                - Label: %s
-                - Summary: %s
+                Task:
+                Generate %d distinct creative evolutions of the original idea using the SCAMPER technique.
 
-                Gere exatamente %d variação(ões) criativa(s) aplicando a técnica %s.
+                Output rules:
+                - Return ONLY valid JSON.
+                - No explanations.
+                - No markdown.
+                - No extra text.
 
-                Para cada variação, responda EXATAMENTE neste formato (uma variação por linha):
-                LABEL: [novo label conciso] | SUMMARY: [resumo explicando a transformação]
-
-                Seja criativo, ousado e inovador. Fuja do óbvio!
+                JSON format:
+                [
+                  {
+                    "label": "<short, specific title>",
+                    "summary": "<1–2 sentences, concrete evolution>"
+                  }
+                ]
                 """,
-                context.technique().name(),
-                techniqueDescription,
                 context.label(),
                 context.summary() != null ? context.summary() : "(sem descrição)",
-                context.count(),
-                context.technique().name());
+                context.technique().name(),
+                context.count());
     }
 
     /**
-     * Retorna descrição da técnica SCAMPER.
+     * Parseia resposta JSON da OpenAI.
      */
-    private String getTechniqueDescription(String technique) {
-        return switch (technique) {
-            case "SUBSTITUTE" -> "O que pode ser substituído? Troque componentes, materiais, processos.";
-            case "COMBINE" -> "O que pode ser combinado? Misture ideias, funções, conceitos.";
-            case "ADAPT" -> "O que pode ser adaptado de outro contexto? Inspire-se em outras áreas.";
-            case "MODIFY" -> "O que pode ser modificado, aumentado ou diminuído?";
-            case "PUT_TO_ANOTHER_USE" -> "Onde mais isso poderia ser usado? Novos contextos e aplicações.";
-            case "ELIMINATE" -> "O que pode ser eliminado ou simplificado?";
-            case "REVERSE" -> "O que acontece se invertermos? Reorganize, mude a ordem.";
-            default -> "Aplique transformação criativa.";
-        };
-    }
-
-    /**
-     * Parseia a resposta da OpenAI em EvolutionResult.
-     */
-    private List<EvolutionResult> parseResponse(String response, EvolutionContext context) {
+    private List<EvolutionResult> parseJsonResponse(String response) {
         List<EvolutionResult> results = new ArrayList<>();
 
-        String[] lines = response.split("\n");
-        for (String line : lines) {
-            line = line.trim();
-            if (line.contains("LABEL:") && line.contains("SUMMARY:")) {
-                try {
-                    int labelStart = line.indexOf("LABEL:") + 6;
-                    int labelEnd = line.indexOf("|");
-                    int summaryStart = line.indexOf("SUMMARY:") + 8;
+        try {
+            // Limpar possíveis marcadores de código
+            String cleanJson = response.trim();
+            if (cleanJson.startsWith("```json")) {
+                cleanJson = cleanJson.substring(7);
+            }
+            if (cleanJson.startsWith("```")) {
+                cleanJson = cleanJson.substring(3);
+            }
+            if (cleanJson.endsWith("```")) {
+                cleanJson = cleanJson.substring(0, cleanJson.length() - 3);
+            }
+            cleanJson = cleanJson.trim();
 
-                    String label = line.substring(labelStart, labelEnd).trim();
-                    String summary = line.substring(summaryStart).trim();
+            // Parse JSON array
+            List<Map<String, String>> parsed = objectMapper.readValue(
+                    cleanJson,
+                    new TypeReference<List<Map<String, String>>>() {
+                    });
 
-                    results.add(new EvolutionResult(label, summary));
-                } catch (Exception e) {
-                    log.warn("Erro ao parsear linha: {}", line);
+            for (Map<String, String> item : parsed) {
+                String label = item.get("label");
+                String summary = item.get("summary");
+                if (label != null && !label.isBlank()) {
+                    results.add(new EvolutionResult(label, summary != null ? summary : ""));
                 }
             }
-        }
 
-        // Fallback se não conseguiu parsear
-        if (results.isEmpty() && !response.isBlank()) {
-            results.add(new EvolutionResult(
-                    "[" + context.technique() + "] " + context.label(),
-                    response.substring(0, Math.min(200, response.length()))));
+        } catch (Exception e) {
+            log.warn("Erro ao parsear JSON: {} - Resposta: {}", e.getMessage(), response);
         }
 
         return results;
